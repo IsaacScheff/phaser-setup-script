@@ -63,10 +63,6 @@ npm install copy-webpack-plugin --save-dev || { echo "Failed to install copy-web
 echo "Creating project structure..."
 mkdir -p src/scenes src/assets/images src/assets/audio || { echo "Failed to create project structure"; exit 1; }
 
-# # Placeholder files
-# touch src/assets/images/.gitkeep
-# touch src/assets/audio/.gitkeep
-
 # Create webpack.config.js
 echo "Creating webpack.config.js..."
 cat <<EOL > webpack.config.js
