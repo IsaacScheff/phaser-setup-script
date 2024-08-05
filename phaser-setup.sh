@@ -20,13 +20,16 @@ then
 fi
 
 # Parse optional flags
-while getopts ":w:h:" opt; do
+while getopts ":w:h:t" opt; do
   case ${opt} in
     w )
       WIDTH=$OPTARG
       ;;
     h )
       HEIGHT=$OPTARG
+      ;;
+    t )
+      USE_TYPESCRIPT=true
       ;;
     \? )
       usage
@@ -59,12 +62,43 @@ npm install babel-loader @babel/core @babel/preset-env --save-dev || { echo "Fai
 npm install html-webpack-plugin --save-dev || { echo "Failed to install HtmlWebpackPlugin"; exit 1; }
 npm install copy-webpack-plugin --save-dev || { echo "Failed to install copy-webpack-plugin"; exit 1; }
 
+if [ "$USE_TYPESCRIPT" = true ]; then
+  npm install typescript ts-loader --save-dev || { echo "Failed to install TypeScript"; exit 1; }
+  npm install @babel/preset-typescript --save-dev || { echo "Failed to install Babel TypeScript preset"; exit 1; }
+fi
+
 # Create project structure
 echo "Creating project structure..."
 mkdir -p src/scenes src/assets/images src/assets/audio || { echo "Failed to create project structure"; exit 1; }
 
 # Create webpack.config.js
 echo "Creating webpack.config.js..."
+
+# Define variables based on whether TypeScript is used
+if [ "$USE_TYPESCRIPT" = true ]; then
+  ENTRY="./src/index.ts"
+  RULES="{
+    test: /\.ts$/,
+    exclude: /node_modules/,
+    use: 'ts-loader'
+  }"
+  EXTENSIONS="['.ts', '.js']"
+else
+  ENTRY="./src/index.js"
+  RULES="{
+    test: /\.js$/,
+    exclude: /node_modules/,
+    use: {
+      loader: 'babel-loader',
+      options: {
+        presets: ['@babel/preset-env']
+      }
+    }
+  }"
+  EXTENSIONS="['.js']"
+fi
+
+# Create the webpack.config.js file
 cat <<EOL > webpack.config.js
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -72,23 +106,17 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     mode: 'development',
-    entry: './src/index.js',
+    entry: '$ENTRY',
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'bundle.js'
     },
+    resolve: {
+        extensions: $EXTENSIONS
+    },
     module: {
         rules: [
-            {
-                test: /\.js$/,
-                exclude: /node_modules/,
-                use: {
-                    loader: 'babel-loader',
-                    options: {
-                        presets: ['@babel/preset-env']
-                    }
-                }
-            }
+            $RULES
         ]
     },
     plugins: [
@@ -110,13 +138,36 @@ module.exports = {
 };
 EOL
 
-# Create .babelrc
-echo "Creating .babelrc..."
-cat <<EOL > .babelrc
+# Conditionally create .babelrc if not using TypeScript
+if [ "$USE_TYPESCRIPT" != true ]; then
+  echo "Creating .babelrc..."
+  cat <<EOL > .babelrc
 {
   "presets": ["@babel/preset-env"]
 }
 EOL
+fi
+
+# Create tsconfig.json if using TypeScript
+if [ "$USE_TYPESCRIPT" = true ]; then
+  echo "Creating tsconfig.json..."
+  cat <<EOL > tsconfig.json
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+EOL
+fi
 
 # Create index.html
 echo "Creating index.html..."
@@ -147,10 +198,56 @@ const config = {
 new Phaser.Game(config);
 EOL
 
-# Create src/scenes/MainScene.js
-echo "Creating src/scenes/MainScene.js..."
-cat <<EOL > src/scenes/MainScene.js
-import Phaser from 'phaser';
+# Define file extensions and content based on whether TypeScript is used
+if [ "$USE_TYPESCRIPT" = true ]; then
+  EXT="ts"
+  INDEX_CONTENT="import Phaser from 'phaser';
+import MainScene from './scenes/MainScene';
+
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,
+  width: $WIDTH,
+  height: $HEIGHT,
+  scene: [MainScene]
+};
+
+new Phaser.Game(config);"
+  SCENE_CONTENT="import Phaser from 'phaser';
+
+class MainScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'MainScene' });
+  }
+
+  preload(): void {
+    // Load assets here
+  }
+
+  create(): void {
+    // Create game objects here
+    this.add.text(100, 100, 'Hello Phaser!');
+  }
+
+  update(): void {
+    // Update game objects here
+  }
+}
+
+export default MainScene;"
+else
+  EXT="js"
+  INDEX_CONTENT="import Phaser from 'phaser';
+import MainScene from './scenes/MainScene.js';
+
+const config = {
+  type: Phaser.AUTO,
+  width: $WIDTH,
+  height: $HEIGHT,
+  scene: [MainScene]
+};
+
+new Phaser.Game(config);"
+  SCENE_CONTENT="import Phaser from 'phaser';
 
 class MainScene extends Phaser.Scene {
   constructor() {
@@ -171,7 +268,19 @@ class MainScene extends Phaser.Scene {
   }
 }
 
-export default MainScene;
+export default MainScene;"
+fi
+
+# Create src/index.js or src/index.ts
+echo "Creating src/index.$EXT..."
+cat <<EOL > src/index.$EXT
+$INDEX_CONTENT
+EOL
+
+# Create src/scenes/MainScene.js or src/scenes/MainScene.ts
+echo "Creating src/scenes/MainScene.$EXT..."
+cat <<EOL > src/scenes/MainScene.$EXT
+$SCENE_CONTENT
 EOL
 
 # Create .gitignore
