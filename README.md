@@ -28,6 +28,7 @@ This script automates the setup of a Phaser.js project with Webpack. It creates 
    ### Parameters
 - `-w width` (optional): Set the width of the Phaser game (default: 800).
 - `-h height` (optional): Set the height of the Phaser game (default: 600).
+- `-t` (optional): Use TypeScript for the project.
 - `project_name`: The name of your Phaser project.
 
 
@@ -36,7 +37,7 @@ This script automates the setup of a Phaser.js project with Webpack. It creates 
 1. **Checks that Node.js and npm are installed**
 
 2. **Parses Command-Line Options**
-   - Reads optional width and height parameters for the Phaser game.
+   - Reads optional flags; height, width, typescript.
 
 3. **Creates Project Directory**
 
@@ -49,12 +50,14 @@ This script automates the setup of a Phaser.js project with Webpack. It creates 
 6. **Sets Up Project Structure**
 
 7. **Creates Configuration Files**
-   - Generates `webpack.config.js` and `.babelrc` for project configuration.
+   - Generates `webpack.config.js` for project configuration.
+   - Conditionally creates `.babelrc` if not using TypeScript.
+   - Creates `tsconfig.json` if using TypeScript.
 
-8. **Creates HTML and JavaScript Files**
+8. **Creates HTML and JavaScript/TypeScript Files**
 
 9. **Initializes Git Repository**
-   - Initializes a new Git repository and makes the first commit.
+   - Initializes a new Git repository and makes the initial commit.
 
 ## Generated Project Structure
 
