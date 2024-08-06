@@ -64,7 +64,6 @@ npm install copy-webpack-plugin --save-dev || { echo "Failed to install copy-web
 
 if [ "$USE_TYPESCRIPT" = true ]; then
   npm install typescript ts-loader --save-dev || { echo "Failed to install TypeScript"; exit 1; }
-  npm install @babel/preset-typescript --save-dev || { echo "Failed to install Babel TypeScript preset"; exit 1; }
 fi
 
 # Create project structure
